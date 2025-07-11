@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 import discord
 from discord.ext import commands
@@ -45,5 +46,5 @@ async def form(ctx):
     else:
         await ctx.send("Error: Submission channel not found.")
 
-# Replace YOUR_BOT_TOKEN with your bot token
-bot.run("YOUR_BOT_TOKEN")
+bot.run(os.environ["DISCORD_TOKEN"])
+
