@@ -16,8 +16,8 @@ SUBMISSION_CHANNEL_ID = 1392968357942399017  # Replace with your actual channel 
 async def form(ctx):
     questions = [
         "What's your name?",
-        "How old are you?",
-        "Why are you applying?",
+        "Is Kima Gingi?",
+        "Why?",
     ]
     answers = []
 
