@@ -10,7 +10,7 @@ intents.message_content = True  # Important for reading user messages
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 # Channel ID where submissions will be posted
-SUBMISSION_CHANNEL_ID = 123456789012345678  # Replace with your actual channel ID
+SUBMISSION_CHANNEL_ID = 1392968357942399017  # Replace with your actual channel ID
 
 @bot.command(name="form")
 async def form(ctx):
