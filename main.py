@@ -22,7 +22,7 @@ user_form_data = {}
 # ----- MODAL FORM (Text Inputs) -----
 class SellApplicationForm(discord.ui.Modal, title="פרסום בושם למכירה"):
     name = discord.ui.TextInput(label="שם הבושם", placeholder="Xerjoff Pikovaya Dama", max_length=100, required=True)
-    amount = discord.ui.TextInput(label='כמות במ"ל', placeholder="95", style=discord.TextStyle.short, required=True, max_length=4)
+    amount = discord.ui.TextInput(label='כמות במ"ל - יש לציין גם מתוך כמה', placeholder="95/100", style=discord.TextStyle.short, required=True, min_length=3, max_length=7)
     capacity = discord.ui.TextInput(label='מתוך כמה במ"ל', placeholder="100", style=discord.TextStyle.short, required=True, max_length=4)
     city = discord.ui.TextInput(label='מאיפה?', placeholder="אשקלון", required=True, max_length=30)
     url = discord.ui.TextInput(label='קישור לתמונה של הבושם (מתוך דיסקורד בלבד!)', placeholder="https://....", max_length=300, required=True)
@@ -30,14 +30,24 @@ class SellApplicationForm(discord.ui.Modal, title="פרסום בושם למכי�
     async def on_submit(self, interaction: discord.Interaction):
         # Validate numbers
         try:
-            amount_val = int(self.amount.value)
-            capacity_val = int(self.capacity.value)
+            if "/" not in self.amount.value:
+                raise EOFError()
+
+            amounts = self.amount.value.split("/")
+
+            if len(amounts) != 2:
+                raise EOFError()
+
+            amount_val = int(amounts[0])
+            capacity_val = int(amounts[1])
             if not (0 <= amount_val <= 300 and 0 <= capacity_val <= 300):
                 raise ValueError("Value out of range")
             if amount_val > capacity_val:
                 raise EnvironmentError()
             if not ("discordapp" in self.url.value):
                 raise KeyError()
+        except EOFError:
+            await interaction.response.send_message("❌ בכמות יש לציין מתוך כמה ולהשתמש ב /", ephemeral=True)
         except ValueError:
             await interaction.response.send_message("❌ אנא הזן מספרים תקינים בין 0 ל-300.", ephemeral=True)
             return
@@ -64,72 +74,59 @@ class SellApplicationForm(discord.ui.Modal, title="פרסום בושם למכי�
         )
 
 
-# Store temporary modal data
-user_trade_form_data = {}
-
-class TradeApplicationFormPart1(discord.ui.Modal, title="פרסום בושם להחלפה - שלב 1"):
+class TradeApplicationForm(discord.ui.Modal, title="פרסום בושם להחלפה"):
     name = discord.ui.TextInput(label="שם הבושם", placeholder="Xerjoff Pikovaya Dama", max_length=50, min_length=10, required=True)
-    amount = discord.ui.TextInput(label='כמות במ"ל', placeholder="95", style=discord.TextStyle.short, required=True, max_length=4)
-    capacity = discord.ui.TextInput(label='מתוך כמה במ"ל', placeholder="100", style=discord.TextStyle.short, required=True, max_length=4)
+    amount = discord.ui.TextInput(label='כמות במ"ל - יש לציין גם מתוך כמה', placeholder="95/100", style=discord.TextStyle.short, required=True, min_length=3, max_length=7)
     city = discord.ui.TextInput(label='מאיפה?', placeholder="אשקלון", required=True, max_length=30)
+    url = discord.ui.TextInput(label='קישור לתמונה של הבושם (מתוך דיסקורד בלבד!)', placeholder="https://....", max_length=300, required=True)
+    prefer = discord.ui.TextInput(label='יש לך העדפות ספציפיות?', placeholder="לא", default="לא", max_length=100, required=False)
 
     async def on_submit(self, interaction: discord.Interaction):
+        # Validate numbers
         try:
-            amount_val = int(self.amount.value)
-            capacity_val = int(self.capacity.value)
+            if "/" not in self.amount.value:
+                raise EOFError()
+
+            amounts = self.amount.value.split("/")
+
+            if len(amounts) != 2:
+                raise EOFError()
+
+            amount_val = int(amounts[0])
+            capacity_val = int(amounts[1])
             if not (0 <= amount_val <= 300 and 0 <= capacity_val <= 300):
-                raise ValueError()
+                raise ValueError("Value out of range")
             if amount_val > capacity_val:
                 raise EnvironmentError()
+            if not ("discordapp" in self.url.value):
+                raise KeyError()
+        except EOFError:
+            await interaction.response.send_message("❌ בכמות יש לציין מתוך כמה ולהשתמש ב /", ephemeral=True)
         except ValueError:
             await interaction.response.send_message("❌ אנא הזן מספרים תקינים בין 0 ל-300.", ephemeral=True)
             return
         except EnvironmentError:
-            await interaction.response.send_message("❌ הכמות לא יכולה להיות גדולה מהקיבולת.", ephemeral=True)
+            await interaction.response.send_message("❌ הכמות בבושם לא יכולה להיות יותר גדולה מגודל הבקבוק", ephemeral=True)
             return
-
-        user_trade_form_data[interaction.user.id] = {
-            "name": self.name.value,
-            "amount": amount_val,
-            "capacity": capacity_val,
-            "city": self.city.value
-        }
-
-        await interaction.response.send_modal(TradeApplicationFormPart2())
-
-
-class TradeApplicationFormPart2(discord.ui.Modal, title="פרסום בושם להחלפה - שלב 2"):
-    url = discord.ui.TextInput(label='קישור לתמונה מהדיסקורד בלבד', placeholder="https://....", max_length=300, required=True)
-    prefer = discord.ui.TextInput(label='העדפות?', placeholder="לא", default="לא", max_length=100, required=False)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        form_data = user_trade_form_data.pop(interaction.user.id, None)
-
-        if not form_data:
-            await interaction.response.send_message("❌ לא נמצאו נתונים משלב קודם.", ephemeral=True)
+        except KeyError:
+            await interaction.response.send_message("❌ הקישור לתמונה צריך להיות מדיסקורד בלבד", ephemeral=True)
             return
-
-        if "discordapp" not in self.url.value:
-            await interaction.response.send_message("❌ קישור חייב להיות מתוך דיסקורד.", ephemeral=True)
-            return
-
-        form_data["url"] = self.url.value
-        form_data["prefer"] = self.prefer.value
 
         submission_channel = bot.get_channel(TRADE_CHANNEL_ID)
         if submission_channel:
+            user_mention = f"<@{interaction.user.id}>"
             embed = discord.Embed(title="בושם חדש להחלפה", color=discord.Color.blue())
-            embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-            embed.add_field(name="שם הבושם", value=form_data["name"], inline=False)
-            embed.add_field(name="כמות", value=f'{form_data["amount"]} מ"ל מתוך {form_data["capacity"]} מ"ל', inline=False)
-            embed.add_field(name="מהעיר", value=form_data["city"], inline=False)
-            embed.add_field(name="העדפות נוספות", value=form_data["prefer"], inline=False)
-            embed.set_image(url=form_data["url"])
+            embed.set_author(name=user_mention, icon_url=interaction.user.display_avatar.url)
+            embed.add_field(name="שם הבושם", value=self.name.value, inline=False)
+            embed.add_field(name="כמות", value=f'{amount_val} מ"ל מתוך {capacity_val} מ"ל', inline=False)
+            embed.add_field(name="מהעיר", value=self.city.value, inline=False)
+            embed.add_field(name="העדפות נוספות", value=self.prefer.value, inline=False)
+            embed.set_image(url=self.url.value)
 
             await submission_channel.send(embed=embed)
-            await interaction.response.send_message("✅ הטופס נשלח בהצלחה!", ephemeral=True)
+            await interaction.response.send_message("✅ הפרטים נשלחו בהצלחה!", ephemeral=True)
         else:
-            await interaction.response.send_message("❌ לא ניתן למצוא את ערוץ ההגשות", ephemeral=True)
+            await interaction.response.send_message("❌ לא ניתן למצוא את הערוץ", ephemeral=True)
 
 class QuestionApplicationForm(discord.ui.Modal, title="פרסום שאלה ליועצים"):
     question = discord.ui.TextInput(label="מה השאלה?", placeholder="בושם טוב לקיץ ב400-500 שקל", max_length=200, min_length=5, required=True)
@@ -195,7 +192,7 @@ class TradeApplicationButtonView(discord.ui.View):
 
     @discord.ui.button(label="לחץ כאן", style=discord.ButtonStyle.primary, custom_id="apply_button")
     async def apply_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(TradeApplicationFormPart1())
+        await interaction.response.send_modal(TradeApplicationForm())
 
 class QuestionApplicationButtonView(discord.ui.View):
     def __init__(self):
