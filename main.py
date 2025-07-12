@@ -225,10 +225,24 @@ async def on_ready():
         print("⚠️ Trigger channel not found.")
 
 
+async def delete_entry(payload: discord.RawReactionActionEvent):
+    source_channel = await bot.fetch_channel(payload.channel_id)
+    message = await source_channel.fetch_message(payload.message_id)
+    print(f'Here2 with {message.content}')
+    if str(payload.member.id) in message.content:
+        print(f'Here3 with {message.content}')
+        await message.delete()
+
+
 @bot.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     # Make sure it's the ✅ emoji (or whatever emoji you use)
     if str(payload.emoji) != "✅":
+        return
+
+    print(f'Here with {payload.channel_id}')
+    if (payload.channel_id == DEST_TRADE_CHANNEL_ID) or (payload.channel_id == DEST_SELL_CHANNEL_ID) :
+        await delete_entry(payload)
         return
 
     if (payload.channel_id != TRADE_CHANNEL_ID) and (payload.channel_id != SELL_CHANNEL_ID):
