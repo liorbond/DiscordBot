@@ -84,7 +84,8 @@ class TradeApplicationForm(discord.ui.Modal, title="פרסום בושם להחל
             embed.add_field(name="העדפות נוספות", value=self.prefer.value, inline=False)
             embed.set_image(url=self.url.value)
 
-            await submission_channel.send(embed=embed)
+            thread = await submission_channel.create_thread(f' להחלפה{self.name.value}')
+            await thread.send(embed=embed)
             await interaction.response.send_message("✅ הפרטים נשלחו בהצלחה!", ephemeral=True)
         else:
             await interaction.response.send_message("❌ לא ניתן למצוא את הערוץ", ephemeral=True)
