@@ -136,6 +136,10 @@ class QuestionApplicationForm(discord.ui.Modal, title="פרסום שאלה לי�
     question = discord.ui.TextInput(label="מה השאלה?", placeholder="בושם טוב לקיץ ב400-500 שקל", max_length=200, min_length=5, required=True)
 
     async def on_submit(self, interaction: discord.Interaction):
+        if interaction.user.id != 1244553283884941325:
+            await interaction.response.send_message("❌ כרגע לא זמין!", ephemeral=True)
+            return
+
         submission_channel = bot.get_channel(QUESTION_CHANNEL_ID)
         if submission_channel:
             user_mention = f"<@{interaction.user.id}>"
