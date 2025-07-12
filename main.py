@@ -1,50 +1,61 @@
-import asyncio
 import os
-
 import discord
 from discord.ext import commands
 
 intents = discord.Intents.default()
-intents.message_content = True  # Important for reading user messages
+intents.message_content = True  # Only needed if you're reading user messages
 
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Channel ID where submissions will be posted
-SUBMISSION_CHANNEL_ID = 1392968357942399017  # Replace with your actual channel ID
+# Your channel IDs
+FORM_TRIGGER_CHANNEL_ID = 1393370417334325253  # The channel where the button lives
+SUBMISSION_CHANNEL_ID = 1393214835193286678   # The channel where the form results go
 
-@bot.command(name="form")
-async def form(ctx):
-    questions = [
-        "What's your name?",
-        "Is Kima Gingi?",
-        "Why?",
-    ]
-    answers = []
 
-    def check(m):
-        return m.author == ctx.author and m.channel == ctx.channel
+# Define the modal form
+class ApplicationForm(discord.ui.Modal, title="Application Form"):
+    name = discord.ui.TextInput(label="What's your name?", placeholder="John Doe")
+    is_kima_gingi = discord.ui.TextInput(label="Is Kima Gingi?", placeholder="Yes/No", style=discord.TextStyle.short)
+    reason = discord.ui.TextInput(label="Why?", style=discord.TextStyle.paragraph, required=True)
 
-    await ctx.send("Let's begin the form. Please answer the following questions:")
+    async def on_submit(self, interaction: discord.Interaction):
+        submission_channel = bot.get_channel(SUBMISSION_CHANNEL_ID)
+        if submission_channel:
+            embed = discord.Embed(title="New Form Submission", color=discord.Color.green())
+            embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+            embed.add_field(name="Name", value=self.name.value, inline=False)
+            embed.add_field(name="Is Kima Gingi?", value=self.is_kima_gingi.value, inline=False)
+            embed.add_field(name="Why?", value=self.reason.value, inline=False)
+            await submission_channel.send(embed=embed)
+            await interaction.response.send_message("✅ Your form was submitted successfully!", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ Submission channel not found.", ephemeral=True)
 
-    for question in questions:
-        await ctx.send(question)
-        try:
-            msg = await bot.wait_for('message', timeout=60.0, check=check)
-        except asyncio.TimeoutError:
-            await ctx.send("You took too long to respond. Cancelling form.")
-            return
-        answers.append(msg.content)
 
-    # Format the submission
-    submission = "\n".join(f"**{q}** {a}" for q, a in zip(questions, answers))
+# Define the button
+class ApplicationButtonView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)  # Persistent view (survives bot restart)
 
-    # Send it to the designated channel
-    channel = bot.get_channel(SUBMISSION_CHANNEL_ID)
+    @discord.ui.button(label="Apply Now", style=discord.ButtonStyle.primary, custom_id="apply_button")
+    async def apply_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(ApplicationForm())
+
+
+@bot.event
+async def on_ready():
+    print(f"Bot is ready as {bot.user}")
+    # Send the persistent button once if it doesn't exist yet (you can control this manually)
+    channel = bot.get_channel(FORM_TRIGGER_CHANNEL_ID)
     if channel:
-        await channel.send(f"**New Form Submission from {ctx.author.mention}:**\n{submission}")
-        await ctx.send("Thanks! Your form has been submitted.")
+        await channel.send(
+            "**Want to apply? Click below to open the form.**",
+            view=ApplicationButtonView()
+        )
     else:
-        await ctx.send("Error: Submission channel not found.")
+        print("⚠️ Form trigger channel not found!")
+
+    # Register the persistent view (important after restarts)
+    bot.add_view(ApplicationButtonView())
 
 bot.run(os.environ["DISCORD_TOKEN"])
-
