@@ -7,55 +7,149 @@ intents.message_content = True  # Only needed if you're reading user messages
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Your channel IDs
-FORM_TRIGGER_CHANNEL_ID = 1393370417334325253  # The channel where the button lives
-SUBMISSION_CHANNEL_ID = 1393214835193286678   # The channel where the form results go
+# Channel IDs
+FORM_TRIGGER_CHANNEL_ID = 1393370417334325253
+SELL_CHANNEL_ID = 1392968357942399017
+TRADE_CHANNEL_ID = 1393214835193286678
+
+# Store temporary form data by user ID
+user_form_data = {}
 
 
-# Define the modal form
-class ApplicationForm(discord.ui.Modal, title="Application Form"):
-    name = discord.ui.TextInput(label="What's your name?", placeholder="John Doe")
-    is_kima_gingi = discord.ui.TextInput(label="Is Kima Gingi?", placeholder="Yes/No", style=discord.TextStyle.short)
-    reason = discord.ui.TextInput(label="Why?", style=discord.TextStyle.paragraph, required=True)
+# ----- MODAL FORM (Text Inputs) -----
+class SellApplicationForm(discord.ui.Modal, title="פרסום בושם למכירה"):
+    name = discord.ui.TextInput(label="שם הבושם", placeholder="Xerjoff Pikovaya Dama", max_length=100, required=True)
+    amount = discord.ui.TextInput(label='כמות במ"ל', placeholder="95", style=discord.TextStyle.short, required=True, max_length=4)
+    capacity = discord.ui.TextInput(label='מתוך כמה במ"ל', placeholder="100", style=discord.TextStyle.short, required=True, max_length=4)
 
     async def on_submit(self, interaction: discord.Interaction):
-        submission_channel = bot.get_channel(SUBMISSION_CHANNEL_ID)
+        # Validate numbers
+        try:
+            amount_val = int(self.amount.value)
+            capacity_val = int(self.capacity.value)
+            if not (0 <= amount_val <= 300 and 0 <= capacity_val <= 300):
+                raise ValueError("Value out of range")
+        except ValueError:
+            await interaction.response.send_message("❌ אנא הזן מספרים תקינים בין 0 ל-300.", ephemeral=True)
+            return
+
+        # Store temporarily and show shipping dropdown
+        user_form_data[interaction.user.id] = {
+            "name": self.name.value,
+            "amount": amount_val,
+            "capacity": capacity_val,
+        }
+
+        await interaction.response.send_message(
+            "כמעט סיימנו! אנא בחר האם יש אפשרות למשלוח:",
+            view=ShippingOptionView(),
+            ephemeral=True
+        )
+
+
+class TradeApplicationForm(discord.ui.Modal, title="פרסום בושם להחלפה"):
+    name = discord.ui.TextInput(label="שם הבושם", placeholder="Xerjoff Pikovaya Dama", max_length=50, min_length=10, required=True)
+    amount = discord.ui.TextInput(label='כמות במ"ל', placeholder="95", style=discord.TextStyle.short, required=True, max_length=4)
+    capacity = discord.ui.TextInput(label='מתוך כמה במ"ל', placeholder="100", style=discord.TextStyle.short, required=True, max_length=4)
+    prefer = discord.ui.TextInput(label='יש לך העדפות ספציפיות?', placeholder="לא", default="לא", max_length=100, required=False)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        # Validate numbers
+        try:
+            amount_val = int(self.amount.value)
+            capacity_val = int(self.capacity.value)
+            if not (0 <= amount_val <= 300 and 0 <= capacity_val <= 300):
+                raise ValueError("Value out of range")
+        except ValueError:
+            await interaction.response.send_message("❌ אנא הזן מספרים תקינים בין 0 ל-300.", ephemeral=True)
+            return
+
+        # Store temporarily and show shipping dropdown
+        user_form_data[interaction.user.id] = {
+            "name": self.name.value,
+            "amount": amount_val,
+            "capacity": capacity_val,
+            "prefer": self.prefer.value
+        }
+
+        submission_channel = bot.get_channel(SELL_CHANNEL_ID)
         if submission_channel:
-            embed = discord.Embed(title="New Form Submission", color=discord.Color.green())
+            embed = discord.Embed(title="בושם חדש להחלפה", color=discord.Color.blue())
             embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-            embed.add_field(name="Name", value=self.name.value, inline=False)
-            embed.add_field(name="Is Kima Gingi?", value=self.is_kima_gingi.value, inline=False)
-            embed.add_field(name="Why?", value=self.reason.value, inline=False)
+            embed.add_field(name="שם הבושם", value=user_form_data["name"], inline=False)
+            embed.add_field(name="כמות", value=f'{user_form_data["amount"]} מ"ל מתוך {user_form_data["capacity"]} מ"ל', inline=False)
+            embed.add_field(name="העדפות נוספות", value=user_form_data["prefer"], inline=False)
+
             await submission_channel.send(embed=embed)
-            await interaction.response.send_message("✅ Your form was submitted successfully!", ephemeral=True)
+            await interaction.response.send_message("✅ הפרטים נשלחו בהצלחה!", ephemeral=True)
         else:
-            await interaction.response.send_message("❌ Submission channel not found.", ephemeral=True)
+            await interaction.response.send_message("❌ לא ניתן למצוא את הערוץ", ephemeral=True)
+
+class ShippingOptionView(discord.ui.View):
+    @discord.ui.select(
+        placeholder="יש אפשרות למשלוח?",
+        min_values=1,
+        max_values=1,
+        options=[
+            discord.SelectOption(label="כן", value="כן"),
+            discord.SelectOption(label="כן בתוספת תשלום", value="בתוספת תשלום"),
+            discord.SelectOption(label="לא", value="לא"),
+        ]
+    )
+    async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select):
+        value = select.values[0]
+        form_data = user_form_data.pop(interaction.user.id, None)
+
+        if not form_data:
+            await interaction.response.send_message("❌ לא נמצאו נתוני טופס קודמים.", ephemeral=True)
+            return
+
+        # Send the full result to the submission channel
+        submission_channel = bot.get_channel(SELL_CHANNEL_ID)
+        if submission_channel:
+            embed = discord.Embed(title="בושם חדש למכירה", color=discord.Color.blue())
+            embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+            embed.add_field(name="שם הבושם", value=form_data["name"], inline=False)
+            embed.add_field(name="כמות", value=f'{form_data["amount"]} מ"ל מתוך {form_data["capacity"]} מ"ל', inline=False)
+            embed.add_field(name="משלוח", value=value, inline=False)
+
+            await submission_channel.send(embed=embed)
+            await interaction.response.send_message("✅ הפרטים נשלחו בהצלחה!", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ לא ניתן למצוא את הערוץ", ephemeral=True)
 
 
-# Define the button
-class ApplicationButtonView(discord.ui.View):
+class SellApplicationButtonView(discord.ui.View):
     def __init__(self):
-        super().__init__(timeout=None)  # Persistent view (survives bot restart)
+        super().__init__(timeout=None)
 
-    @discord.ui.button(label="Apply Now", style=discord.ButtonStyle.primary, custom_id="apply_button")
+    @discord.ui.button(label="לחץ כאן", style=discord.ButtonStyle.primary, custom_id="apply_button")
     async def apply_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(ApplicationForm())
+        await interaction.response.send_modal(SellApplicationForm())
+
+class TradeApplicationButtonView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="לחץ כאן", style=discord.ButtonStyle.primary, custom_id="apply_button")
+    async def apply_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(TradeApplicationForm())
 
 
+# ----- ON BOT READY -----
 @bot.event
 async def on_ready():
-    print(f"Bot is ready as {bot.user}")
-    # Send the persistent button once if it doesn't exist yet (you can control this manually)
+    print(f"✅ Bot is ready as {bot.user}")
+    bot.add_view(SellApplicationButtonView())
+
+    # Optional: send form button message only once
     channel = bot.get_channel(FORM_TRIGGER_CHANNEL_ID)
     if channel:
-        await channel.send(
-            "**Want to apply? Click below to open the form.**",
-            view=ApplicationButtonView()
-        )
+        await channel.send("לפרסום בושם למכירה:", view=SellApplicationButtonView())
+        await channel.send("לפרסום בושם להחלפה:", view=SellApplicationButtonView())
     else:
-        print("⚠️ Form trigger channel not found!")
+        print("⚠️ Trigger channel not found.")
 
-    # Register the persistent view (important after restarts)
-    bot.add_view(ApplicationButtonView())
 
+# ----- START -----
 bot.run(os.environ["DISCORD_TOKEN"])
