@@ -214,13 +214,24 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 
     # Fetch message and channel
     channel = bot.get_channel(dest_channel_id)
-    message = await channel.fetch_message(payload.message_id)
+    try:
+        message = await channel.fetch_message(payload.message_id)
+        original_embed = message.embeds[0] if message.embeds else None
+        if original_embed:
+            await channel.send(embed=original_embed)
+            await message.delete()
+    except discord.NotFound:
+        print("Message not found. It may have been deleted.")
+        return
+    except discord.Forbidden:
+        print("Bot doesn't have permission to view this message.")
+        return
+    except discord.HTTPException as e:
+        print(f"Failed to fetch message: {e}")
+        return
 
     # Edit the embed or resend it for public view
-    original_embed = message.embeds[0] if message.embeds else None
-    if original_embed:
-        await channel.send(embed=original_embed)
-        await message.delete()
+
 
 
 # ----- START -----
