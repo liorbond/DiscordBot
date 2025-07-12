@@ -23,8 +23,9 @@ user_form_data = {}
 class SellApplicationForm(discord.ui.Modal, title="פרסום בושם למכירה"):
     name = discord.ui.TextInput(label="שם הבושם", placeholder="Xerjoff Pikovaya Dama", max_length=100, required=True)
     amount = discord.ui.TextInput(label='כמות במ"ל - יש לציין גם מתוך כמה', placeholder="95/100", style=discord.TextStyle.short, required=True, min_length=3, max_length=7)
-    capacity = discord.ui.TextInput(label='מתוך כמה במ"ל', placeholder="100", style=discord.TextStyle.short, required=True, max_length=4)
+    price = discord.ui.TextInput(label='מחיר', placeholder="150", style=discord.TextStyle.short, required=True, max_length=5)
     city = discord.ui.TextInput(label='מאיפה?', placeholder="אשקלון", required=True, max_length=30)
+
     url = discord.ui.TextInput(label='קישור לתמונה של הבושם (מתוך דיסקורד בלבד!)', placeholder="https://....", max_length=300, required=True)
 
     async def on_submit(self, interaction: discord.Interaction):
@@ -38,6 +39,8 @@ class SellApplicationForm(discord.ui.Modal, title="פרסום בושם למכי�
             if len(amounts) != 2:
                 raise EOFError()
 
+            price = int(self.price.value)
+
             amount_val = int(amounts[0])
             capacity_val = int(amounts[1])
             if not (0 <= amount_val <= 300 and 0 <= capacity_val <= 300):
@@ -49,7 +52,7 @@ class SellApplicationForm(discord.ui.Modal, title="פרסום בושם למכי�
         except EOFError:
             await interaction.response.send_message("❌ בכמות יש לציין מתוך כמה ולהשתמש ב /", ephemeral=True)
         except ValueError:
-            await interaction.response.send_message("❌ אנא הזן מספרים תקינים בין 0 ל-300.", ephemeral=True)
+            await interaction.response.send_message("❌ אנא הזן מספרים תקינים במחיר ובכמויות הכמות לא יכולה להיות גדולה מ 300 מל.", ephemeral=True)
             return
         except EnvironmentError:
             await interaction.response.send_message("❌ הכמות בבושם לא יכולה להיות יותר גדולה מגודל הבקבוק", ephemeral=True)
@@ -65,6 +68,7 @@ class SellApplicationForm(discord.ui.Modal, title="פרסום בושם למכי�
             "capacity": capacity_val,
             "city": self.city.value,
             "url": self.url.value,
+            "price": price
         }
 
         await interaction.response.send_message(
@@ -168,6 +172,7 @@ class ShippingOptionView(discord.ui.View):
             embed.set_author(name=user_mention, icon_url=interaction.user.display_avatar.url)
             embed.add_field(name="שם הבושם", value=form_data["name"], inline=False)
             embed.add_field(name="כמות", value=f'{form_data["amount"]} מ"ל מתוך {form_data["capacity"]} מ"ל', inline=False)
+            embed.add_field(name="מחיר", value=f'₪{form_data["price"]}', inline=False)
             embed.add_field(name="מהעיר", value=form_data["city"], inline=False)
             embed.add_field(name="משלוח", value=value, inline=False)
             embed.set_image(url=form_data["url"])
