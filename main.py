@@ -112,7 +112,8 @@ class QuestionApplicationForm(discord.ui.Modal, title="פרסום שאלה לי�
     async def on_submit(self, interaction: discord.Interaction):
         submission_channel = bot.get_channel(QUESTION_CHANNEL_ID)
         if submission_channel:
-            message = f'{self.question.value} שואל: {interaction.user.display_name}'
+            user_mention = f"<@{interaction.user.id}>"
+            message = f'{self.question.value} שואל: {user_mention}'
             await submission_channel.send(content=message)
             await interaction.response.send_message("✅ הפרטים נשלחו בהצלחה!", ephemeral=True)
         else:
