@@ -118,18 +118,16 @@ class TradeApplicationForm(discord.ui.Modal, title="פרסום בושם להחל
 
         submission_channel = bot.get_channel(TRADE_CHANNEL_ID)
         if submission_channel:
-            user_mention = f"<@{interaction.user.id}>"
             embed = discord.Embed(title="בושם חדש להחלפה", color=discord.Color.blue())
-            embed.set_author(name=user_mention, icon_url=interaction.user.display_avatar.url)
+            embed.set_author(name=interaction.user.name, icon_url=interaction.user.display_avatar.url)
             embed.add_field(name="שם הבושם", value=self.name.value, inline=False)
             embed.add_field(name="כמות", value=f'{amount_val} מ"ל מתוך {capacity_val} מ"ל', inline=False)
             embed.add_field(name="מהעיר", value=self.city.value, inline=False)
             embed.add_field(name="העדפות נוספות", value=self.prefer.value, inline=False)
             embed.set_image(url=self.url.value)
-            view = discord.ui.View()
-            view.add_item(discord.ui.Button(label="לשיחה בפרטי", style=discord.ButtonStyle.link, url=f"https://discord.com/users/{interaction.user.id}"))
 
-            await submission_channel.send(embed=embed, view=view)
+            user_mention = f"<@{interaction.user.id}>"
+            await submission_channel.send(embed=embed, content=user_mention)
             await interaction.response.send_message("✅ הפרטים נשלחו בהצלחה!", ephemeral=True)
         else:
             await interaction.response.send_message("❌ לא ניתן למצוא את הערוץ", ephemeral=True)
@@ -170,18 +168,16 @@ class ShippingOptionView(discord.ui.View):
         submission_channel = bot.get_channel(SELL_CHANNEL_ID)
         if submission_channel:
             embed = discord.Embed(title="בושם חדש למכירה", color=discord.Color.blue())
-            user_mention = f"<@{interaction.user.id}>"
-            embed.set_author(name=user_mention, icon_url=interaction.user.display_avatar.url)
+            embed.set_author(name=interaction.user.name, icon_url=interaction.user.display_avatar.url)
             embed.add_field(name="שם הבושם", value=form_data["name"], inline=False)
             embed.add_field(name="כמות", value=f'{form_data["amount"]} מ"ל מתוך {form_data["capacity"]} מ"ל', inline=False)
             embed.add_field(name="מחיר", value=f'₪{form_data["price"]}', inline=False)
             embed.add_field(name="מהעיר", value=form_data["city"], inline=False)
             embed.add_field(name="משלוח", value=value, inline=False)
             embed.set_image(url=form_data["url"])
-            view = discord.ui.View()
-            view.add_item(discord.ui.Button(label="לשיחה בפרטי", style=discord.ButtonStyle.link, url=f"https://discord.com/users/{interaction.user.id}"))
 
-            await submission_channel.send(embed=embed, view=view)
+            user_mention = f"<@{interaction.user.id}>"
+            await submission_channel.send(embed=embed, content=user_mention)
             await interaction.response.send_message("✅ הפרטים נשלחו בהצלחה!", ephemeral=True)
         else:
             await interaction.response.send_message("❌ לא ניתן למצוא את הערוץ", ephemeral=True)
