@@ -126,8 +126,10 @@ class TradeApplicationForm(discord.ui.Modal, title="פרסום בושם להחל
             embed.add_field(name="מהעיר", value=self.city.value, inline=False)
             embed.add_field(name="העדפות נוספות", value=self.prefer.value, inline=False)
             embed.set_image(url=self.url.value)
+            view = discord.ui.View()
+            view.add_item(discord.ui.Button(label="לשיחה בפרטי", style=discord.ButtonStyle.link, url=f"https://discord.com/users/{interaction.user.id}"))
 
-            await submission_channel.send(embed=embed)
+            await submission_channel.send(embed=embed, view=view)
             await interaction.response.send_message("✅ הפרטים נשלחו בהצלחה!", ephemeral=True)
         else:
             await interaction.response.send_message("❌ לא ניתן למצוא את הערוץ", ephemeral=True)
@@ -176,8 +178,10 @@ class ShippingOptionView(discord.ui.View):
             embed.add_field(name="מהעיר", value=form_data["city"], inline=False)
             embed.add_field(name="משלוח", value=value, inline=False)
             embed.set_image(url=form_data["url"])
+            view = discord.ui.View()
+            view.add_item(discord.ui.Button(label="לשיחה בפרטי", style=discord.ButtonStyle.link, url=f"https://discord.com/users/{interaction.user.id}"))
 
-            await submission_channel.send(embed=embed)
+            await submission_channel.send(embed=embed, view=view)
             await interaction.response.send_message("✅ הפרטים נשלחו בהצלחה!", ephemeral=True)
         else:
             await interaction.response.send_message("❌ לא ניתן למצוא את הערוץ", ephemeral=True)
