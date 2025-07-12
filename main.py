@@ -244,8 +244,9 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     try:
         message = await source_channel.fetch_message(payload.message_id)
         original_embed = message.embeds[0] if message.embeds else None
+        original_content = message.content
         if original_embed:
-            await channel.send(embed=original_embed)
+            await channel.send(embed=original_embed, content=original_content)
             await message.delete()
     except discord.NotFound:
         print("Message not found. It may have been deleted.")
