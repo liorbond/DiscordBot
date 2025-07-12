@@ -75,7 +75,7 @@ class TradeApplicationForm(discord.ui.Modal, title="פרסום בושם להחל
             await interaction.response.send_message("❌ הכמות בבושם לא יכולה להיות יותר גדולה מגודל הבקבוק", ephemeral=True)
             return
 
-        submission_channel = bot.get_channel(SELL_CHANNEL_ID)
+        submission_channel = bot.get_channel(TRADE_CHANNEL_ID)
         if submission_channel:
             embed = discord.Embed(title="בושם חדש להחלפה", color=discord.Color.blue())
             embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
