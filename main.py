@@ -9,8 +9,10 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Channel IDs
 FORM_TRIGGER_CHANNEL_ID = 1393370417334325253
-SELL_CHANNEL_ID = 1392968357942399017
-TRADE_CHANNEL_ID = 1393214835193286678
+SELL_CHANNEL_ID = 1393553183963353231
+TRADE_CHANNEL_ID = 1393553313550565426
+DEST_SELL_CHANNEL_ID = 1392968357942399017
+DEST_TRADE_CHANNEL_ID = 1393214835193286678
 QUESTION_CHANNEL_ID = 1393260216639815710
 
 # Store temporary form data by user ID
@@ -195,6 +197,30 @@ async def on_ready():
         await channel.send("אם יש לכם שאלה ליועצים:", view=QuestionApplicationButtonView())
     else:
         print("⚠️ Trigger channel not found.")
+
+
+@bot.event
+async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
+    # Make sure it's the ✅ emoji (or whatever emoji you use)
+    if str(payload.emoji) != "✅":
+        return
+
+    if (payload.channel_id != TRADE_CHANNEL_ID) and (payload.channel_id != SELL_CHANNEL_ID):
+        return
+
+    dest_channel_id = DEST_SELL_CHANNEL_ID
+    if payload.channel_id == TRADE_CHANNEL_ID:
+        dest_channel_id = DEST_TRADE_CHANNEL_ID
+
+    # Fetch message and channel
+    channel = bot.get_channel(dest_channel_id)
+    message = await channel.fetch_message(payload.message_id)
+
+    # Edit the embed or resend it for public view
+    original_embed = message.embeds[0] if message.embeds else None
+    if original_embed:
+        await channel.send(embed=original_embed)
+        await message.delete()
 
 
 # ----- START -----
