@@ -213,9 +213,10 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
         dest_channel_id = DEST_TRADE_CHANNEL_ID
 
     # Fetch message and channel
+    source_channel = await bot.fetch_channel(payload.channel_id)
     channel = bot.get_channel(dest_channel_id)
     try:
-        message = await channel.fetch_message(payload.message_id)
+        message = await source_channel.fetch_message(payload.message_id)
         original_embed = message.embeds[0] if message.embeds else None
         if original_embed:
             await channel.send(embed=original_embed)
