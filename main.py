@@ -75,23 +75,14 @@ class TradeApplicationForm(discord.ui.Modal, title="פרסום בושם להחל
             await interaction.response.send_message("❌ הכמות בבושם לא יכולה להיות יותר גדולה מגודל הבקבוק", ephemeral=True)
             return
 
-        # Store temporarily and show shipping dropdown
-        user_form_data[interaction.user.id] = {
-            "name": self.name.value,
-            "amount": amount_val,
-            "capacity": capacity_val,
-            "prefer": self.prefer.value,
-            "url": self.url.value
-        }
-
         submission_channel = bot.get_channel(SELL_CHANNEL_ID)
         if submission_channel:
             embed = discord.Embed(title="בושם חדש להחלפה", color=discord.Color.blue())
             embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-            embed.add_field(name="שם הבושם", value=user_form_data["name"], inline=False)
-            embed.add_field(name="כמות", value=f'{user_form_data["amount"]} מ"ל מתוך {user_form_data["capacity"]} מ"ל', inline=False)
-            embed.add_field(name="העדפות נוספות", value=user_form_data["prefer"], inline=False)
-            embed.set_image(url=user_form_data["url"])
+            embed.add_field(name="שם הבושם", value=self.name.value, inline=False)
+            embed.add_field(name="כמות", value=f'{amount_val} מ"ל מתוך {capacity_val} מ"ל', inline=False)
+            embed.add_field(name="העדפות נוספות", value=self.prefer.value, inline=False)
+            embed.set_image(url=self.url.value)
 
             await submission_channel.send(embed=embed)
             await interaction.response.send_message("✅ הפרטים נשלחו בהצלחה!", ephemeral=True)
