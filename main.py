@@ -21,7 +21,7 @@ user_form_data = {}
 
 # ----- MODAL FORM (Text Inputs) -----
 class SellApplicationForm(discord.ui.Modal, title="פרסום בושם למכירה"):
-    name = discord.ui.TextInput(label="שם הבושם", placeholder="Xerjoff Pikovaya Dama", max_length=100, required=True)
+    name = discord.ui.TextInput(label="שם הבושם", placeholder="Xerjoff Pikovaya Dama", max_length=50, min_length=10, required=True)
     amount = discord.ui.TextInput(label='כמות במ"ל - יש לציין גם מתוך כמה', placeholder="95/100", style=discord.TextStyle.short, required=True, min_length=3, max_length=7)
     price = discord.ui.TextInput(label='מחיר', placeholder="150", style=discord.TextStyle.short, required=True, max_length=5)
     city = discord.ui.TextInput(label='מאיפה?', placeholder="אשקלון", required=True, max_length=30)
@@ -123,7 +123,7 @@ class TradeApplicationForm(discord.ui.Modal, title="פרסום בושם להחל
             embed.add_field(name="שם הבושם", value=self.name.value, inline=False)
             embed.add_field(name="כמות", value=f'{amount_val} מ"ל מתוך {capacity_val} מ"ל', inline=False)
             embed.add_field(name="מהעיר", value=self.city.value, inline=False)
-            embed.add_field(name="העדפות נוספות", value=self.prefer.value, inline=False)
+            embed.add_field(name="העדפות ספציפיות", value=self.prefer.value, inline=False)
             embed.set_image(url=self.url.value)
 
             user_mention = f"<@{interaction.user.id}>"
@@ -133,13 +133,9 @@ class TradeApplicationForm(discord.ui.Modal, title="פרסום בושם להחל
             await interaction.response.send_message("❌ לא ניתן למצוא את הערוץ", ephemeral=True)
 
 class QuestionApplicationForm(discord.ui.Modal, title="פרסום שאלה ליועצים"):
-    question = discord.ui.TextInput(label="מה השאלה?", placeholder="בושם טוב לקיץ ב400-500 שקל", max_length=200, min_length=5, required=True)
+    question = discord.ui.TextInput(label="מה השאלה/בקשה?", placeholder="בושם טוב לקיץ ב400-500 שקל", max_length=200, min_length=5, required=True)
 
     async def on_submit(self, interaction: discord.Interaction):
-        if interaction.user.id != 1244553283884941325 and interaction.user.id != 142031212310036480:
-            await interaction.response.send_message("❌ כרגע לא זמין!", ephemeral=True)
-            return
-
         submission_channel = bot.get_channel(QUESTION_CHANNEL_ID)
         if submission_channel:
             user_mention = f"<@{interaction.user.id}>"
@@ -219,8 +215,9 @@ async def on_ready():
     bot.add_view(SellApplicationButtonView())
     bot.add_view(TradeApplicationButtonView())
 
-    # Optional: send form button message only once
     channel = bot.get_channel(FORM_TRIGGER_CHANNEL_ID)
+    await channel.purge()
+
     if channel:
         await channel.send("לפרסום בושם למכירה:", view=SellApplicationButtonView())
         await channel.send("לפרסום בושם להחלפה:", view=TradeApplicationButtonView())
