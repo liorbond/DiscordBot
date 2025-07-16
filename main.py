@@ -19,6 +19,11 @@ QUESTION_CHANNEL_ID = 1393260216639815710
 user_form_data = {}
 
 
+def validate_text(text):
+    bad_words = ["@", "http", "www"]
+    return not any(sub in text for sub in bad_words)
+
+
 # ----- MODAL FORM (Text Inputs) -----
 class SellApplicationForm(discord.ui.Modal, title="פרסום בושם למכירה"):
     name = discord.ui.TextInput(label="שם הבושם", placeholder="Xerjoff Pikovaya Dama", max_length=50, min_length=10, required=True)
@@ -132,12 +137,15 @@ class TradeApplicationForm(discord.ui.Modal, title="פרסום בושם להחל
         else:
             await interaction.response.send_message("❌ לא ניתן למצוא את הערוץ", ephemeral=True)
 
+
 class QuestionApplicationForm(discord.ui.Modal, title="פרסום שאלה ליועצים"):
     question = discord.ui.TextInput(label="מה השאלה/בקשה?", placeholder="בושם טוב לקיץ ב400-500 שקל", max_length=200, min_length=5, required=True)
 
     async def on_submit(self, interaction: discord.Interaction):
         submission_channel = bot.get_channel(QUESTION_CHANNEL_ID)
         if submission_channel:
+            if not validate_text(self.question.value):
+                interaction.response.send_message("❌ הטקסט מכיל תווים אסורים", ephemeral=True)
             user_mention = f"<@{interaction.user.id}>"
             message = f'{self.question.value} {user_mention}:'
             await submission_channel.send(content=message)
@@ -233,6 +241,8 @@ async def delete_entry(payload: discord.RawReactionActionEvent):
     if str(payload.member.id) in message.content:
         print(f'Here3 with {message.content}')
         await message.delete()
+
+
 
 
 @bot.event
