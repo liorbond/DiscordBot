@@ -146,6 +146,7 @@ class QuestionApplicationForm(discord.ui.Modal, title="פרסום שאלה לי�
         if submission_channel:
             if not validate_text(self.question.value):
                 interaction.response.send_message("❌ הטקסט מכיל תווים אסורים", ephemeral=True)
+                return
             user_mention = f"<@{interaction.user.id}>"
             message = f'{self.question.value} {user_mention}:'
             await submission_channel.send(content=message)
